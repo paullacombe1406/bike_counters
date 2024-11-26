@@ -3,8 +3,8 @@ import numpy as np
 from pathlib import Path
 from sklearn.dummy import DummyRegressor
 
-df_train = pd.read_parquet("..input/msdb-2024/train.parquet")
-X_test = pd.read_parquet("..input/msdb-2024/final_test.parquet")
+df_train = pd.read_parquet("../input/msdb-2024/train.parquet")
+X_test = pd.read_parquet("../input/msdb-2024/final_test.parquet")
 
 X_train = df_train.drop(columns="log_bike_count", axis=1)
 y_train = df_train["log_bike_count"]
