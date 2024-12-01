@@ -1,0 +1,11 @@
+Code ;Description
+0;cloud covering half or less of the sky throughout the period
+1;cloud covering more than half the sky during part of the period & half or less for the rest
+2;cloud covering more than half the sky throughout the period
+3;sandstorm, duststorm or blowing snow
+4;fog or ice fog or thick haze
+5;drizzle
+6;rain1
+7;snow, or rain and snow mixed
+8;shower(s)
+9;thunderstorm(s) with or without precipitation
