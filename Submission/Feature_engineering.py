@@ -4,6 +4,8 @@ import numpy as np
 from datetime import datetime
 from datetime import timedelta
 import numpy as np
+import geopandas as gpd
+from shapely.geometry import Point
 
 
 problem_title = "Bike count prediction"
@@ -66,7 +68,8 @@ def _merge_external_data(X):
     X["orig_index"] = np.arange(X.shape[0])
     X = pd.merge_asof(
         X.sort_values("date"),
-        df_ext[["date", "t", "n", "u"]].sort_values("date"),
+        df_ext[["date", "u", "tend", "ww", "rr6", "rr12", "rr24", "etat_sol",
+                "ht_neige", "n", "t", "td", "tend24"]].sort_values("date"),
         on="date",
     )
     # Sort back to the original order
@@ -184,3 +187,34 @@ def train_test_split_temporal(X, y, delta_threshold="30 days"):
     y_train, y_valid = y[mask], y[~mask]
 
     return X_train, y_train, X_valid, y_valid
+
+def _add_arrondissement_with_geopandas(X, shapefile_path):
+    arrondissements = gpd.read_file(shapefile_path)
+
+    X = X.copy()
+    X["geometry"] = X.apply(
+        lambda row: Point(row["longitude"], row["latitude"]), axis=1
+    )
+    gdf = gpd.GeoDataFrame(X, geometry="geometry", crs=arrondissements.crs)
+
+    merged = gpd.sjoin(gdf, arrondissements, how="left", predicate="within")
+
+    X["district"] = merged["c_ar"].fillna(21).astype(int)
+
+    return X
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
