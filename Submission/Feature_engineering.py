@@ -28,7 +28,7 @@ def _encode_columns(X):
         "site_id",
         "site_name",
         "coordinates",
-        "counter_technical_id", "bike_count"
+        "counter_technical_id"
     ]
     X = X.drop(columns=columns_to_drop, axis=1)
     return X
