@@ -98,7 +98,7 @@ def replace_broken_counters(X):
 
 def get_train_data(path="data/train.parquet"):
         """
-    Loads and the training data from and replace broken counters values before spliting the data.
+    Loads the training data and replace broken counters values before spliting the data.
 
     Parameters:
         path (str): The file path to the training data in Parquet format. Default is "data/train.parquet".
