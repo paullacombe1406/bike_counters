@@ -366,7 +366,6 @@ def _add_covid(X):
     Returns:
         X (DataFrame): The modified DataFrame.
     """
-        
     start_calendar = np.min(X["date"])
     end_calendar = np.max(X["date"])
 
@@ -410,7 +409,6 @@ def _add_covid(X):
     return X
 
 
-# Add information about the "arrondissements" in which are located the counters
 def _add_arrondissement_with_geopandas(X):
     """
     Adds a 'district' column, indicating the Paris arrondissement where each coordinate 
