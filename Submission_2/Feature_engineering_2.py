@@ -8,8 +8,18 @@ problem_title = "Bike count prediction"
 _target_column_name = "log_bike_count"
 
 
-# Get the training data, without modifying it
 def get_train_data(path="data/train.parquet"):
+    """
+    Loads the training data.
+
+    Parameters:
+        path (str): The file path to the training data in Parquet format. Default is "data/train.parquet".
+
+    Returns:
+        tuple:
+            - X_df (DataFrame): The feature DataFrame.
+            - y_array (numpy array): The target variable values.
+    """
     data = pd.read_parquet(path)
     # Sort by date first, so that time based cross-validation would produce correct results
     data = data.sort_values(["date", "counter_id"])
@@ -18,8 +28,16 @@ def get_train_data(path="data/train.parquet"):
     return X_df, y_array
 
 
-# Get rid of the columns that are redundant
 def _encode_columns(X):
+    """
+    Gets rid of redundant columns.
+
+    Parameters:
+        X (DataFrame): The input DataFrame containing various columns.
+
+    Returns:
+        X (DataFrame): The modified DataFrame with specified columns dropped.
+    """
     columns_to_drop = [
         "counter_id",
         "site_id",
@@ -31,8 +49,16 @@ def _encode_columns(X):
     return X
 
 
-# Encode the date information
 def _encode_dates(X):
+    """
+    Encodes date-related features from the 'date' column in the input DataFrame.
+
+    Parameters:
+        X (DataFrame): The input DataFrame.
+
+    Returns:
+        X (DataFrame): The modified DataFrame with new date-related features.
+    """
     X = X.copy()
 
     X.loc[:, "year"] = X["date"].dt.year
@@ -46,8 +72,24 @@ def _encode_dates(X):
     return X
 
 
-# Add a column giving more information on the time of the day
 def get_time_of_day(X):
+    """
+    Adds a 'time_of_day' column to the DataFrame, categorizing each hour into predefined time segments.
+    
+    The categories are:
+        - 1: Early Morning (4 AM to 6 AM)
+        - 2: Morning (7 AM to 9 AM)
+        - 3: Late Morning (10 AM to 12 PM)
+        - 4: Afternoon (1 PM to 5 PM)
+        - 5: Evening (6 PM to 10 PM)
+        - 6: Night (11 PM to 3 AM)
+
+    Parameters:
+        X (DataFrame): The input DataFrame.
+
+    Returns:
+        X (DataFrame): The modified DataFrame with an additional 'time_of_day' column.
+    """
     def get_time(hour):
         if hour > 3 and hour <= 6:
             return 1
@@ -66,8 +108,16 @@ def get_time_of_day(X):
     return X
 
 
-# Add a column giving more information on the season
 def get_season(X):
+    """
+    Adds a 'season' column to the DataFrame, categorizing each date into one of four seasons.
+
+    Parameters:
+        X (DataFrame): The input DataFrame.
+
+    Returns:
+        X (DataFrame): The modified DataFrame with an additional 'season' column.
+    """
     def season(date):
         if (date > datetime(2020, 9, 21)) & (date < datetime(2020, 12, 21)):
             return 1
@@ -84,8 +134,28 @@ def get_season(X):
     return X
 
 
-# Merge meteo data from a clean csv
 def _merge_external_data(X):
+    """
+    Merges external weather data with the input DataFrame. Note that this data comes from a cleaned 
+    version of "external_data" called "external_data_cleaned".
+
+    Parameters:
+        X (DataFrame): The input DataFrame.
+
+    Returns:
+        X (DataFrame): The modified DataFrame with external data merged. Selected features from external data includes:
+            - 'pres': Pressure
+            - 'u': Wind speed
+            - 'tend': Pressure Tendency
+            - 'ww': Current weather (code WMO 4677)
+            - 'rr6', 'rr12', 'rr24': Precipitation in the last 6, 12, and 24 hours
+            - 'etat_sol': Soil condition
+            - 'ht_neige': Snow height
+            - 'n': Cloud cover
+            - 't': Temperature
+            - 'td': Dew point temperature
+            - 'tend24': 24-hour temperature trend
+    """
     df_ext = pd.read_csv(
         "external_data/external_data_cleaned.csv", parse_dates=["date"]
     )
@@ -124,8 +194,19 @@ def _merge_external_data(X):
     return X
 
 
-# Add information on holidays and bank holidays
 def _add_holiday(X):
+    """
+    Adds holiday-related features to the input DataFrame, including bank holidays and school vacations.
+    These new features are:
+        - 'is_bank_holiday': Indicates if the date is a bank holiday (1 for holiday, 0 otherwise).
+        - 'is_holidays': Indicates if the date falls within Parisian school vacation periods (1 for vacation, 0 otherwise).
+
+    Parameters:
+        X (DataFrame): The input DataFrame.
+
+    Returns:
+        X (DataFrame): The modified DataFrame with added holiday-related features.
+    """
     link_bank_holiday = "external_data/jours_feries_metropole.csv"
     # https://www.data.gouv.fr/fr/datasets/r/6637991e-c4d8-4cd6-854e-ce33c5ab49d5
 
@@ -182,8 +263,21 @@ def _add_holiday(X):
     return X
 
 
-# Add information about lockdowns due to covid
 def _add_covid(X):
+    """
+    Adds a 'is_lockdown' column, indicating whether a given date falls within a COVID-19 lockdown period
+    (1 for lockdown period, 0 otherwise).
+
+    Lockdown periods:
+        - 1st lockdown: October 30, 2020, to December 15, 2020.
+        - 2nd lockdown: April 3, 2021, to May 9, 2021.
+
+    Parameters:
+        X (DataFrame): The input DataFrame.
+
+    Returns:
+        X (DataFrame): The modified DataFrame.
+    """
     start_calendar = np.min(X["date"])
     end_calendar = np.max(X["date"])
 
@@ -227,8 +321,18 @@ def _add_covid(X):
     return X
 
 
-# Add information about the "arrondissements" in which are located the counters
 def _add_arrondissement_with_geopandas(X):
+    """
+    Adds a 'district' column, indicating the Paris arrondissement where each coordinate 
+    point (latitude and longitude) is located. If a point liest within Paris, the corresponding district code
+    is added, otherwise, it is assigned a default value of 21.
+
+    Parameters:
+        X (DataFrame): The input DataFrame.
+
+    Returns:
+        DataFrame: The modified DataFrame with an additional 'district' column.
+    """
     arrondissements = gpd.read_file("external_data/arrondissements.shp")
     # https://opendata.paris.fr/explore/dataset/arrondissements/export/?disjunctive.c_ar&disjunctive.c_arinsee&disjunctive.l_ar&location=13,48.85156,2.32327
 
